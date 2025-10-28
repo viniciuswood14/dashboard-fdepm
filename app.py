@@ -11,7 +11,7 @@ st.title("Dashboard de Execução - FDEPM")
 st.markdown("Fundo de Desenvolvimento do Ensino Profissional Marítimo")
 
 # --- Constante principal do dashboard ---
-UO_FDEPM_COD = "52133"  # Unidade Orçamentária do FDEPM
+UO_FDEPM_COD = "52932"  # Unidade Orçamentária do FDEPM
 
 # --- Tenta obter a chave da API (do Render) ---
 # Vamos configurar esta variável no Passo 2
