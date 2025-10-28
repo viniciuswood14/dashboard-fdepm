@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import requests
-import os  # Vamos manter, mas não usar para a chave por agora
+import os
 from orcamentobr import despesa_detalhada
 import locale
 
@@ -51,7 +51,10 @@ def buscar_despesas(ano, uo_cod):
 # --- FUNÇÃO 2: BUSCAR RECEITAS (via Portal da Transparência) ---
 @st.cache_data
 def buscar_receitas(ano, orgao_cod, api_key):
-    st.write(f"Buscando receitas para Órgão {oro_cod} no ano {ano}...")
+    #
+    # ----- CORREÇÃO ESTÁ AQUI -----
+    #
+    st.write(f"Buscando receitas para Órgão {orgao_cod} no ano {ano}...") # Estava 'oro_cod'
     URL_BASE = "https://api.portaldatransparencia.gov.br/api-de-dados/receitas/por-orgao"
     HEADERS = {"chave-api-dados": api_key}
     
@@ -68,12 +71,11 @@ def buscar_receitas(ano, orgao_cod, api_key):
         try:
             response = requests.get(URL_BASE, headers=HEADERS, params=params)
             
-            # Se a chave estiver errada, o portal devolve 401 ou 403
             if response.status_code == 401 or response.status_code == 403:
                 st.error(f"Erro de Autenticação (401/403). A chave da API está errada ou expirou.")
                 return pd.DataFrame()
                 
-            response.raise_for_status() # Lança erro para outros status (500, 404, etc)
+            response.raise_for_status() 
             
             dados_pagina = response.json()
             
@@ -134,7 +136,6 @@ if st.sidebar.button("Consultar"):
 
     # --- ABA 2: PAINEL DE RECEITAS ---
     with tab_rec:
-        # Verificação de segurança simples
         if not API_KEY or API_KEY == "COLE_A_SUA_CHAVE_SECRETA_REAL_AQUI":
             st.error("ERRO: A chave da API não foi colocada no código app.py.")
         else:
@@ -161,3 +162,4 @@ if st.sidebar.button("Consultar"):
                     st.warning("Nenhum dado de RECEITA encontrado para este ano.")
 else:
     st.info("Por favor, selecione o ano e clique em 'Consultar'.")
+              
