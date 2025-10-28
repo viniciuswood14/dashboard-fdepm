@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import requests
-import os  # Para ler a chave da API
+import os  # Vamos manter, mas não usar para a chave por agora
 from orcamentobr import despesa_detalhada
 import locale
 
@@ -13,9 +13,13 @@ st.markdown("Fundo de Desenvolvimento do Ensino Profissional Marítimo")
 # --- Constante principal do dashboard ---
 UO_FDEPM_COD = "52932"  # Unidade Orçamentária do FDEPM
 
-# --- Tenta obter a chave da API (do Render) ---
-# Vamos configurar esta variável no Passo 2
-API_KEY = os.environ.get("PORTAL_API_KEY")
+# --- !! MUDANÇA PARA TESTE !! ---
+# Coloque a sua chave secreta diretamente aqui, entre as aspas
+# Lembre-se de apagar isto logo após o teste!
+API_KEY = "23fa4ab5b9ca6908a921e0116c9b971d" 
+# API_KEY_ORIGINAL = os.environ.get("PORTAL_API_KEY") # Linha original desativada
+# --- FIM DA MUDANÇA ---
+
 
 # --- Funções de Formatação e Busca ---
 def formatar_moeda(valor):
@@ -47,7 +51,7 @@ def buscar_despesas(ano, uo_cod):
 # --- FUNÇÃO 2: BUSCAR RECEITAS (via Portal da Transparência) ---
 @st.cache_data
 def buscar_receitas(ano, orgao_cod, api_key):
-    st.write(f"Buscando receitas para Órgão {orgao_cod} no ano {ano}...")
+    st.write(f"Buscando receitas para Órgão {oro_cod} no ano {ano}...")
     URL_BASE = "https://api.portaldatransparencia.gov.br/api-de-dados/receitas/por-orgao"
     HEADERS = {"chave-api-dados": api_key}
     
@@ -57,18 +61,24 @@ def buscar_receitas(ano, orgao_cod, api_key):
     while True:
         params = {
             "anoExercicio": ano,
-            "codigoOrgao": orgao_cod, # No Portal, o FDEPM é tratado como Órgão 52133
+            "codigoOrgao": orgao_cod, 
             "pagina": pagina
         }
         
         try:
             response = requests.get(URL_BASE, headers=HEADERS, params=params)
-            response.raise_for_status() # Lança erro se a requisição falhar
+            
+            # Se a chave estiver errada, o portal devolve 401 ou 403
+            if response.status_code == 401 or response.status_code == 403:
+                st.error(f"Erro de Autenticação (401/403). A chave da API está errada ou expirou.")
+                return pd.DataFrame()
+                
+            response.raise_for_status() # Lança erro para outros status (500, 404, etc)
             
             dados_pagina = response.json()
             
             if not dados_pagina:
-                break  # Para o loop se não houver mais dados
+                break  
                 
             dados_receita_total.extend(dados_pagina)
             pagina += 1
@@ -96,8 +106,6 @@ if st.sidebar.button("Consultar"):
             
             if not df_desp.empty:
                 st.subheader("Visão Geral das Despesas (Execução)")
-                
-                # Métricas
                 dotacao = df_desp['loa_mais_credito'].sum()
                 empenhado = df_desp['empenhado'].sum()
                 pago = df_desp['pago'].sum()
@@ -106,18 +114,14 @@ if st.sidebar.button("Consultar"):
                 col1.metric("Dotação Atualizada", formatar_moeda(dotacao))
                 col2.metric("Empenhado", formatar_moeda(empenhado))
                 col3.metric("Pago", formatar_moeda(pago))
-                
                 st.divider()
                 
-                # Gráficos
                 col_g1, col_g2 = st.columns(2)
-                
                 with col_g1:
                     st.markdown("#### Despesas por Ação Orçamentária")
                     acao_data = df_desp.groupby('Acao_desc')['empenhado'].sum().reset_index()
                     acao_data = acao_data.sort_values('empenhado', ascending=False)
                     st.bar_chart(acao_data, x='Acao_desc', y='empenhado')
-
                 with col_g2:
                     st.markdown("#### Despesas por Natureza (GND)")
                     gnd_data = df_desp.groupby('GND_desc')['empenhado'].sum().reset_index()
@@ -125,43 +129,35 @@ if st.sidebar.button("Consultar"):
                     st.bar_chart(gnd_data, x='GND_desc', y='empenhado')
                 
                 st.dataframe(df_desp)
-
             else:
                 st.warning("Nenhum dado de DESPESA encontrado para este ano.")
 
     # --- ABA 2: PAINEL DE RECEITAS ---
     with tab_rec:
-        if not API_KEY:
-            st.error("ERRO: A chave da API do Portal da Transparência não foi configurada.")
-            st.info("Por favor, configure a variável de ambiente 'PORTAL_API_KEY' nas configurações do Render.")
+        # Verificação de segurança simples
+        if not API_KEY or API_KEY == "COLE_A_SUA_CHAVE_SECRETA_REAL_AQUI":
+            st.error("ERRO: A chave da API não foi colocada no código app.py.")
         else:
             with st.spinner(f"Buscando dados de RECEITA para {ano_selecionado}..."):
-                # Usamos o mesmo código 52133
                 df_rec = buscar_receitas(ano_selecionado, UO_FDEPM_COD, API_KEY)
                 
                 if not df_rec.empty:
                     st.subheader("Visão Geral das Receitas (Arrecadação)")
-                    
-                    # Métricas
                     prevista = df_rec['valorPrevisto'].sum()
                     realizada = df_rec['valorRealizado'].sum()
                     
                     col_r1, col_r2 = st.columns(2)
                     col_r1.metric("Receita Prevista", formatar_moeda(prevista))
                     col_r2.metric("Receita Realizada (Arrecadado)", formatar_moeda(realizada))
-                    
                     st.divider()
                     
-                    # Gráficos
                     st.markdown("#### Receitas por Origem (Categoria Primária)")
                     rec_data = df_rec.groupby('descricaoPrimaria')['valorRealizado'].sum().reset_index()
                     rec_data = rec_data.sort_values('valorRealizado', ascending=False)
                     st.bar_chart(rec_data, x='descricaoPrimaria', y='valorRealizado')
-                    
                     st.dataframe(df_rec)
                 
                 else:
                     st.warning("Nenhum dado de RECEITA encontrado para este ano.")
-
 else:
     st.info("Por favor, selecione o ano e clique em 'Consultar'.")
