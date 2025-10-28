@@ -11,7 +11,7 @@ st.title("Dashboard de Execução - FDEPM")
 st.markdown("Fundo de Desenvolvimento do Ensino Profissional Marítimo")
 
 # --- Constante principal do dashboard ---
-UO_FDEPM_COD = "52133"  # Unidade Orçamentária do FDEPM
+UO_FDEPM_COD = "52329"  # Unidade Orçamentária do FDEPM
 
 # --- Funções de Formatação e Busca ---
 def formatar_moeda(valor):
