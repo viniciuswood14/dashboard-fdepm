@@ -16,7 +16,7 @@ UO_FDEPM_COD = "52932"  # Unidade Orçamentária do FDEPM
 # --- !! MUDANÇA PARA TESTE !! ---
 # Coloque a sua chave secreta diretamente aqui, entre as aspas
 # Lembre-se de apagar isto logo após o teste!
-API_KEY = "23fa4ab5b9ca6908a921e0116c9b971d" 
+API_KEY = "50711d1a1fe08c225d62da7c155ce584" 
 # API_KEY_ORIGINAL = os.environ.get("PORTAL_API_KEY") # Linha original desativada
 # --- FIM DA MUDANÇA ---
 
