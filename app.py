@@ -164,4 +164,3 @@ if st.sidebar.button("Consultar"):
                         st.warning("Nenhum dado de RECEITA encontrado. Verifique o ano ou a chave da API.")
 else:
     st.info("Por favor, selecione o ano, insira sua chave da API e clique em 'Consultar'.")
-              
