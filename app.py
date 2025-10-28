@@ -11,15 +11,7 @@ st.title("Dashboard de Execução - FDEPM")
 st.markdown("Fundo de Desenvolvimento do Ensino Profissional Marítimo")
 
 # --- Constante principal do dashboard ---
-UO_FDEPM_COD = "52932"  # Unidade Orçamentária do FDEPM
-
-# --- !! MUDANÇA PARA TESTE !! ---
-# Coloque a sua chave secreta diretamente aqui, entre as aspas
-# Lembre-se de apagar isto logo após o teste!
-API_KEY = "50711d1a1fe08c225d62da7c155ce584" 
-# API_KEY_ORIGINAL = os.environ.get("PORTAL_API_KEY") # Linha original desativada
-# --- FIM DA MUDANÇA ---
-
+UO_FDEPM_COD = "52133"  # Unidade Orçamentária do FDEPM
 
 # --- Funções de Formatação e Busca ---
 def formatar_moeda(valor):
@@ -51,10 +43,7 @@ def buscar_despesas(ano, uo_cod):
 # --- FUNÇÃO 2: BUSCAR RECEITAS (via Portal da Transparência) ---
 @st.cache_data
 def buscar_receitas(ano, orgao_cod, api_key):
-    #
-    # ----- CORREÇÃO ESTÁ AQUI -----
-    #
-    st.write(f"Buscando receitas para Órgão {orgao_cod} no ano {ano}...") # Estava 'oro_cod'
+    st.write(f"Buscando receitas para Órgão {orgao_cod} no ano {ano}...") # Erro 'oro_cod' corrigido
     URL_BASE = "https://api.portaldatransparencia.gov.br/api-de-dados/receitas/por-orgao"
     HEADERS = {"chave-api-dados": api_key}
     
@@ -71,11 +60,12 @@ def buscar_receitas(ano, orgao_cod, api_key):
         try:
             response = requests.get(URL_BASE, headers=HEADERS, params=params)
             
+            # Se a chave estiver errada, o portal devolve 401 ou 403
             if response.status_code == 401 or response.status_code == 403:
-                st.error(f"Erro de Autenticação (401/403). A chave da API está errada ou expirou.")
+                st.error(f"Erro de Autenticação (401/403). A chave da API inserida está errada ou expirou.")
                 return pd.DataFrame()
                 
-            response.raise_for_status() 
+            response.raise_for_status() # Lança erro para outros status (500, 404, etc)
             
             dados_pagina = response.json()
             
@@ -95,6 +85,15 @@ def buscar_receitas(ano, orgao_cod, api_key):
 st.sidebar.header("Filtros")
 ano_selecionado = st.sidebar.number_input("Selecione o Ano", min_value=2010, max_value=2025, value=2024)
 
+# --- NOVO CAMPO PARA A CHAVE DA API ---
+st.sidebar.subheader("Autenticação")
+api_key_input = st.sidebar.text_input(
+    "Cole sua 'chave-api-dados' aqui:",
+    type="password",  # Esconde a chave com '****'
+    help="Necessário para consultar a aba 'Receitas'"
+)
+# --- FIM DA MUDANÇA ---
+
 # --- Cria as Abas ---
 tab_desp, tab_rec = st.tabs(["📊 Despesas", "💰 Receitas"])
 
@@ -108,6 +107,7 @@ if st.sidebar.button("Consultar"):
             
             if not df_desp.empty:
                 st.subheader("Visão Geral das Despesas (Execução)")
+                # ... (resto do código da aba de despesas, sem alteração) ...
                 dotacao = df_desp['loa_mais_credito'].sum()
                 empenhado = df_desp['empenhado'].sum()
                 pago = df_desp['pago'].sum()
@@ -136,11 +136,13 @@ if st.sidebar.button("Consultar"):
 
     # --- ABA 2: PAINEL DE RECEITAS ---
     with tab_rec:
-        if not API_KEY or API_KEY == "COLE_A_SUA_CHAVE_SECRETA_REAL_AQUI":
-            st.error("ERRO: A chave da API não foi colocada no código app.py.")
+        # Verifica se o usuário inseriu uma chave
+        if not api_key_input:
+            st.warning("Por favor, insira sua 'chave-api-dados' na barra lateral para consultar as receitas.")
         else:
             with st.spinner(f"Buscando dados de RECEITA para {ano_selecionado}..."):
-                df_rec = buscar_receitas(ano_selecionado, UO_FDEPM_COD, API_KEY)
+                # Passa a chave digitada pelo usuário para a função
+                df_rec = buscar_receitas(ano_selecionado, UO_FDEPM_COD, api_key_input)
                 
                 if not df_rec.empty:
                     st.subheader("Visão Geral das Receitas (Arrecadação)")
@@ -159,7 +161,7 @@ if st.sidebar.button("Consultar"):
                     st.dataframe(df_rec)
                 
                 else:
-                    st.warning("Nenhum dado de RECEITA encontrado para este ano.")
+                    st.warning("Nenhum dado de RECEITA encontrado. Verifique o ano ou a chave da API.")
 else:
-    st.info("Por favor, selecione o ano e clique em 'Consultar'.")
+    st.info("Por favor, selecione o ano, insira sua chave da API e clique em 'Consultar'.")
               
